@@ -7,14 +7,36 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="start-overlay">
+        <div id="pt-container">
+            <div id="periodic-table"></div>
+            <div class="pt-legend">
+                <span class="legend-box metal"></span>金屬
+                <span class="legend-box metalloid"></span>類金屬
+                <span class="legend-box nonmetal"></span>非金屬
+                <span class="legend-box noble"></span>鈍氣
+            </div>
+        </div>
 
+        <div id="nine-grid-container">
+            <div id="nine-grid"></div>
+        </div>
+
+        <div class="center-content">
+            <h1 class="start-title">元素煉金對戰 (Chemical Alchemy Battle)<br>{與AI對打_測試版}</h1>
+            <p class="start-inst">使用wsad移動，使用數字鍵合成化合物<br>按enter射擊<br>右側查看目前遊戲有的化合物</p>
+            <button id="btn-start" onclick="startGame()">確定</button>
+        </div>
+
+        <div id="tooltip"></div>
+    </div>
     <h1>元素煉金對戰 (Chemical Alchemy Battle)</h1>
     
     <div id="game-container">
         <!-- 遊戲畫面 -->
         <div>
             <canvas id="gameCanvas" width="400" height="400"></canvas>
-            <div class="controls-hint">操作提示：移動 [W][A][S][D] | 點擊右側按鈕注入元素組合（最多3個自動觸發）<br>數字鍵 1：溴；2：氫；3：氧；4：鋁</div>
+            <div class="controls-hint">操作提示：移動 [W][A][S][D] | 點擊右側按鈕注入元素組合</div>
         </div>
 
         <!-- 控制與狀態面板 -->
@@ -39,17 +61,7 @@
             <!-- 元素按鈕 -->
             <h3>注入元素彈</h3>
             <div class="numpad-grid">
-                <button disabled class="empty-btn" aria-hidden="true"></button>
-                <button disabled class="empty-btn" aria-hidden="true"></button>
-                <button disabled class="empty-btn" aria-hidden="true"></button>
                 
-                <button id="btn-Al" onclick="injectElement('Al')">鋁 (Al)<br>[4]</button>
-                <button disabled class="empty-btn" aria-hidden="true"></button>
-                <button disabled class="empty-btn" aria-hidden="true"></button>
-                
-                <button id="btn-Br" onclick="injectElement('Br')">溴 (Br)<br>[1]</button>
-                <button id="btn-H" onclick="injectElement('H')">氫 (H)<br>[2]</button>
-                <button id="btn-O" onclick="injectElement('O')">氧 (O)<br>[3]</button>
             </div>
             <button class="btn-clear" onclick="popElement()">刪除上一個元素 (Backspace)</button>
         </div>

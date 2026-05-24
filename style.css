@@ -118,7 +118,7 @@ body {
             padding: 20px;
             box-sizing: border-box;
             box-shadow: -5px 0 15px rgba(0,0,0,0.8);
-            z-index: 1000;
+            z-index: 3000;
         }
         #reference-sidebar.open {
             right: 0;
@@ -128,7 +128,7 @@ body {
             position: fixed;
             right: 0;
             top: 20px;
-            z-index: 1001;
+            z-index: 3001;
             background: #ff9800;
             color: #111;
             border: none;
@@ -189,3 +189,84 @@ body {
             border-bottom: 1px solid #555;
             padding-bottom: 10px;
         }
+        #start-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 3000;
+    display: flex;
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+.center-content {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 600px;
+}
+
+.start-title { font-size: 28px; margin-bottom: 15px; color: #fff; }
+.start-inst { font-size: 16px; color: #ccc; margin-bottom: 30px; line-height: 1.5; }
+#btn-start { background: #4caf50; padding: 15px 40px; font-size: 18px; color: white; border-radius: 5px; cursor: pointer; }
+
+/* 週期表區塊 (左上) */
+#pt-container {
+    position: absolute;
+    top: 30px; left: 30px;
+    width: 400px;
+}
+#periodic-table {
+    display: grid;
+    grid-template-columns: repeat(18, 1fr);
+    gap: 2px;
+}
+.element-box {
+    width: 20px; height: 20px;
+    background: #555;
+    font-size: 9px;
+    display: flex; justify-content: center; align-items: center;
+    cursor: pointer; 
+    -webkit-user-select: none; /* 補上這行給 Safari 看 */
+    user-select: none;/* 這是給其他現代瀏覽器看的*/
+    transition: transform 0.1s;
+}
+.element-box.active { background: purple; color: white; font-weight: bold; }
+.element-box.draggable-ready { box-shadow: 0 0 8px #00ffff; border: 1px solid #00ffff; }
+
+/* 圖例 */
+.pt-legend { margin-top: 10px; font-size: 12px; display: flex; gap: 10px; align-items: center; }
+.legend-box { width: 10px; height: 10px; display: inline-block; }
+.legend-box.metal { background: orange; }
+.legend-box.metalloid { background: green; }
+.legend-box.nonmetal { background: purple; }
+.legend-box.noble { background: blue; }
+
+/* 九宮格區塊 (左下) */
+#nine-grid-container {
+    position: absolute;
+    bottom: 30px; left: 30px;
+}
+#nine-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 60px);
+    grid-template-rows: repeat(3, 60px);
+    gap: 5px;
+}
+.grid-cell {
+    width: 60px; height: 60px;
+    background: #222; border: 2px dashed #666;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 20px; font-weight: bold; color: white;
+}
+.grid-cell.drag-over { border-color: #00ffff; background: #333; }
+
+/* 提示框 */
+#tooltip {
+    position: absolute;
+    background: rgba(0,0,0,0.9);
+    border: 1px solid #444; padding: 10px; border-radius: 4px;
+    pointer-events: none; opacity: 0; transition: opacity 0.2s;
+    font-size: 13px; max-width: 200px; z-index: 3001;
+}

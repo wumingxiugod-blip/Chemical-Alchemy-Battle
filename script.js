@@ -45,11 +45,11 @@ const canvas = document.getElementById("gameCanvas");
         window.addEventListener("keydown", e => { 
             let key = e.key.toLowerCase();
             if(key in keys) keys[key] = true; 
+            // 根據動態綁定的 keyMap 觸發對應元素
+            if (isGameStarted && keyMap[key]) {
+                injectElement(keyMap[key]);
+            }
             
-            if(key === '1') injectElement('Br');
-            if(key === '2') injectElement('H');
-            if(key === '3') injectElement('O');
-            if(key === '4') injectElement('Al');
             if(key === 'enter') manualFire(player);
             if(key === 'backspace') popElement(); // 新增退回鍵
         });
@@ -74,9 +74,9 @@ const canvas = document.getElementById("gameCanvas");
                 let maxStr = config.max === Infinity ? "∞" : config.max;
                 let elName = removedEl === 'Br' ? '溴' : removedEl === 'H' ? '氫' : removedEl === 'Al' ? '鋁' : '氧';
                 
-                // 加上鍵盤對應數字以符合九宮格 UI
-                let numKey = removedEl === 'Br' ? '1' : removedEl === 'H' ? '2' : removedEl === 'O' ? '3' : '4';
-                document.getElementById(`btn-${removedEl}`).innerHTML = `${elName} (${removedEl})<br>[${numKey}] [${player.storage[removedEl]}/${maxStr}]`;
+                // 動態抓取該元素目前綁定在哪個數字鍵上
+                let boundKey = Object.keys(keyMap).find(k => keyMap[k] === removedEl) || "?";
+                document.getElementById(`btn-${removedEl}`).innerHTML = `${elName} (${removedEl})<br>[${boundKey}] [${player.storage[removedEl]}/${maxStr}]`;
             }
         }
         function addLog(msg) {
@@ -458,8 +458,9 @@ const canvas = document.getElementById("gameCanvas");
                     let maxStr = config.max === Infinity ? "∞" : config.max;
                     // 由於你之前 HTML 氧按鈕內可能殘留 font-weight，這裡統一單純改文字
                     let elName = el === 'Br' ? '溴' : el === 'H' ? '氫' : el === 'Al' ? '鋁' : '氧';
-                    let numKey = el === 'Br' ? '1' : el === 'H' ? '2' : el === 'O' ? '3' : '4';
-                    btn.innerHTML = `${elName} (${el})<br>[${numKey}] [${player.storage[el]}/${maxStr}]`;
+                    // 動態抓取該元素目前綁定在哪個數字鍵上
+                    let boundKey = Object.keys(keyMap).find(k => keyMap[k] === el) || "?";
+                    btn.innerHTML = `${elName} (${el})<br>[${boundKey}] [${player.storage[el]}/${maxStr}]`;
                 }
             });
             updateAI();
@@ -645,4 +646,157 @@ const canvas = document.getElementById("gameCanvas");
         }
         // 初始化日誌
         addLog("🧪 歡迎來到元素煉金對戰！請用 WASD 控制移動，點擊按鈕調配你的化學武器。");
-        gameLoop();
+        /* === 開始畫面與拖曳邏輯 === */
+        const activeDict = {
+            1: { sym: 'H', desc: '萬能鍵結者，酸鹼還原溶劑基底' },
+            8: { sym: 'O', desc: '氧化主導者，穩定鈍化能量載體' },
+            13: { sym: 'Al', desc: '金屬兩性強，惰性耐腐易水解' },
+            35: { sym: 'Br', desc: '鹵素活性高，腐蝕氧化遇水不穩' }
+        };
+
+        // 預設九宮格狀態 (對應實體鍵盤的 789, 456, 123)
+        let gridState = [
+            null, null, null,
+            'Al', null, null,
+            'Br', 'H',  'O'
+        ];
+        let holdTimer = null;
+        let keyMap = {}; // 用來記錄動態綁定的快捷鍵
+
+        function initStartScreen() {
+            const pt = document.getElementById('periodic-table');
+            const tooltip = document.getElementById('tooltip');
+            
+            // 生成 118 個元素
+            for (let i = 1; i <= 118; i++) {
+                let box = document.createElement('div');
+                box.className = 'element-box';
+                
+                let isActive = activeDict[i] !== undefined;
+                let sym = isActive ? activeDict[i].sym : i;
+                box.innerText = sym;
+                
+                if (isActive) box.classList.add('active');
+
+                // 點擊顯示 Tooltip
+                box.addEventListener('mousedown', (e) => {
+                    let desc = isActive ? activeDict[i].desc : (i > 4 ? "未知" : "敬請期待");
+                    tooltip.innerHTML = `<strong>${sym}</strong><br>${desc}`;
+                    tooltip.style.left = e.pageX + 15 + 'px';
+                    tooltip.style.top = e.pageY + 15 + 'px';
+                    tooltip.style.opacity = 1;
+
+                    // 長按 0.3 秒邏輯
+                    if (isActive) {
+                        holdTimer = setTimeout(() => {
+                            box.setAttribute('draggable', 'true');
+                            box.classList.add('draggable-ready');
+                            tooltip.innerHTML = "已解鎖拖曳！請拖入下方九宮格";
+                        }, 300);
+                    } else {
+                        tooltip.innerHTML += "<br><span style='color:red'>(敬請期待，無法拖曳)</span>";
+                    }
+                });
+
+                // 拖曳開始
+                box.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', sym);
+                    tooltip.style.opacity = 0;
+                });
+
+                box.addEventListener('dragend', () => {
+                    box.removeAttribute('draggable');
+                    box.classList.remove('draggable-ready');
+                });
+
+                // 取消長按
+                box.addEventListener('mouseup', () => { clearTimeout(holdTimer); });
+                box.addEventListener('mouseleave', () => { clearTimeout(holdTimer); tooltip.style.opacity = 0; });
+
+                pt.appendChild(box);
+            }
+
+            // 生成九宮格
+            const grid = document.getElementById('nine-grid');
+            for (let i = 0; i < 9; i++) {
+                let cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.dataset.index = i;
+                // 加上這行：如果有預設元素，直接顯示出來
+                if (gridState[i]) cell.innerText = gridState[i];
+                
+                // 下面的 dragover 等監聽器保持不變...
+                cell.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    cell.classList.add('drag-over');
+                });
+
+                cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+
+                cell.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    cell.classList.remove('drag-over');
+                    let sym = e.dataTransfer.getData('text/plain');
+                    
+                    // 查重：如果該元素已經在九宮格內，清空原本的位置
+                    let existingIndex = gridState.indexOf(sym);
+                    if (existingIndex !== -1) {
+                        gridState[existingIndex] = null;
+                        grid.children[existingIndex].innerText = '';
+                    }
+
+                    // 寫入新位置
+                    gridState[i] = sym;
+                    cell.innerText = sym;
+                });
+
+                grid.appendChild(cell);
+            }
+        }
+
+        // 開始遊戲按鈕觸發
+        function startGame() {
+            document.getElementById('start-overlay').style.display = 'none';
+            // 實體鍵盤的九宮格對應 (左上到右下)
+            const indexToKey = ['7', '8', '9', '4', '5', '6', '1', '2', '3'];
+            const numpad = document.querySelector('.numpad-grid');
+            numpad.innerHTML = ''; // 確保清空
+            keyMap = {};
+
+            for (let i = 0; i < 9; i++) {
+                let el = gridState[i];
+                let key = indexToKey[i];
+
+                if (el) {
+                    let btn = document.createElement('button');
+                    btn.id = `btn-${el}`;
+                    
+                    // 寫入元素專屬顏色
+                    if(el==='Br') { btn.style.background = '#8b4513'; btn.style.color = 'white'; }
+                    if(el==='H') { btn.style.background = '#add8e6'; btn.style.color = 'black'; }
+                    if(el==='O') { btn.style.background = '#ff4500'; btn.style.color = 'white'; }
+                    if(el==='Al') { btn.style.background = '#a9a9a9'; btn.style.color = 'black'; }
+
+                    let elName = el === 'Br' ? '溴' : el === 'H' ? '氫' : el === 'Al' ? '鋁' : '氧';
+                    let maxStr = resourceConfig[el].max === Infinity ? "∞" : resourceConfig[el].max;
+
+                    btn.innerHTML = `${elName} (${el})<br>[${key}] [0/${maxStr}]`;
+                    btn.onclick = () => injectElement(el);
+
+                    numpad.appendChild(btn);
+                    keyMap[key] = el; // 將該按鍵綁定給該元素
+                } else {
+                    let btn = document.createElement('button');
+                    btn.disabled = true;
+                    btn.className = 'empty-btn';
+                    btn.setAttribute('aria-hidden', 'true');
+                    numpad.appendChild(btn);
+                }
+            }
+            isGameStarted = true;
+            gameLoop(); // 正式啟動核心戰鬥迴圈
+        }
+
+        // 執行初始化
+        let isGameStarted = false;
+        initStartScreen();
