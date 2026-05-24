@@ -186,6 +186,16 @@
         .stat-line { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 6px 0; font-size: 14px; }
         .stat-line span.val { color: #00ffff; font-family: monospace; font-size: 15px; }
         .stat-sub-line { display: flex; justify-content: space-between; padding: 4px 0 4px 20px; font-size: 13px; color: #aaa; }
+        .btn-restart {
+            width: 100%;
+            margin-top: 20px;
+            background: #4caf50;
+        }
+        .ref-title {
+            color: #fff;
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -221,13 +231,13 @@
             <!-- 元素按鈕 -->
             <h3>注入元素彈</h3>
             <div class="numpad-grid">
-                <button disabled class="empty-btn"></button>
-                <button disabled class="empty-btn"></button>
-                <button disabled class="empty-btn"></button>
+                <button disabled class="empty-btn" aria-hidden="true"></button>
+                <button disabled class="empty-btn" aria-hidden="true"></button>
+                <button disabled class="empty-btn" aria-hidden="true"></button>
                 
                 <button id="btn-Al" onclick="injectElement('Al')">鋁 (Al)<br>[4]</button>
-                <button disabled class="empty-btn"></button>
-                <button disabled class="empty-btn"></button>
+                <button disabled class="empty-btn" aria-hidden="true"></button>
+                <button disabled class="empty-btn" aria-hidden="true"></button>
                 
                 <button id="btn-Br" onclick="injectElement('Br')">溴 (Br)<br>[1]</button>
                 <button id="btn-H" onclick="injectElement('H')">氫 (H)<br>[2]</button>
@@ -244,14 +254,14 @@
         <div class="stats-panel">
             <h2 id="end-title">戰鬥結算</h2>
             <div id="stats-container"></div>
-            <button style="width: 100%; margin-top: 20px; background: #4caf50;" onclick="location.reload()">重新啟動</button>
+            <button class="btn-restart" onclick="location.reload()">重新啟動</button>
         </div>
     </div>
 
     <button id="toggleSidebarBtn" class="toggle-btn" onclick="toggleSidebar()">化學圖鑑</button>
 
     <div id="reference-sidebar">
-        <h2 style="color: #fff; border-bottom: 1px solid #555; padding-bottom: 10px;">遊戲內物質與反應圖鑑</h2>
+        <h2 class="ref-title">遊戲內物質與反應圖鑑</h2>
         <table class="ref-table">
             <thead><tr><th>化合物</th><th>化學式</th><th>性質與實存性註記</th><th>遊戲內表現</th></tr></thead>
             <tbody>
@@ -263,7 +273,7 @@
                 <tr><td>氫溴酸</td><td>HBr</td><td>強酸，腐蝕性與揮發性極高，對黏膜與金屬具強烈侵蝕作用。</td><td>造成高於常規之持續傷害（-3／秒），合理反映其強酸特性。</td></tr>
             </tbody>
         </table>
-        <h2 style="color: #fff; border-bottom: 1px solid #555; padding-bottom: 10px;">尚未製作之物質與反應圖鑑</h2>
+        <h2 class="ref-title">尚未製作之物質與反應圖鑑</h2>
         
         <table class="ref-table">
             <thead><tr><th>化合物</th><th>化學式</th><th>性質與實存性註記</th></tr></thead>
