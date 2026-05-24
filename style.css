@@ -1,0 +1,191 @@
+body {
+            font-family: Arial, sans-serif;
+            background-color: #222;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .shield-status { margin-top: 5px; }
+        .btn-clear {
+            width: 100%;
+            margin-top: 10px;
+            background: #555;
+            color: white;
+        }
+        #game-container {
+            display: flex;
+            gap: 20px;
+        }
+        canvas {
+            border: 2px solid #555;
+            background-color: #111;
+        }
+        .panel {
+            width: 300px;
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .status {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #444;
+        }
+        .hp-bar {
+            width: 100%;
+            height: 20px;
+            background: #555;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .hp-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.2s;
+        }
+        #player-hp { background: #4caf50; }
+        #enemy-hp { background: #f44336; }
+        .numpad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .empty-btn {
+            background: #222;
+            border: 1px dashed #444;
+            cursor: default;
+        }
+        .empty-btn:hover {
+            opacity: 1;
+            transform: none;
+        }
+        button {
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #btn-Br { background: #8b4513; color: white; }
+        #btn-H { background: #add8e6; color: black; }
+        #btn-Al { background: #a9a9a9; color: black; }
+        #btn-O { background: #ff4500; color: white; }
+        button:hover { opacity: 0.8; }
+        button:active { transform: scale(0.95); }
+        .queue {
+            font-size: 14px;
+            color: #aaa;
+            margin-top: 5px;
+            min-height: 20px;
+        }
+        #log {
+            width: 720px;
+            height: 100px;
+            background: #111;
+            border: 1px solid #444;
+            margin-top: 15px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 13px;
+            color: #00ff00;
+            font-family: monospace;
+        }
+        .controls-hint {
+            margin-top: 10px;
+            color: #888;
+            font-size: 13px;
+        }
+        /* 側邊圖鑑欄樣式 */
+        #reference-sidebar {
+            position: fixed;
+            right: -450px; /* 預設隱藏在畫面右側外 */
+            top: 0;
+            width: 450px;
+            height: 100vh;
+            background-color: #1e1e1e;
+            border-left: 2px solid #555;
+            transition: right 0.3s ease-in-out;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.8);
+            z-index: 1000;
+        }
+        #reference-sidebar.open {
+            right: 0;
+        }
+        /* 切換按鈕 */
+        .toggle-btn {
+            position: fixed;
+            right: 0;
+            top: 20px;
+            z-index: 1001;
+            background: #ff9800;
+            color: #111;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px 0 0 5px;
+            font-weight: bold;
+            transition: right 0.3s ease-in-out;
+            box-shadow: -2px 2px 5px rgba(0,0,0,0.5);
+        }
+        .toggle-btn.open {
+            right: 450px;
+        }
+        /* 數據表格樣式 */
+        .ref-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            font-size: 13px;
+            color: #ddd;
+        }
+        .ref-table th, .ref-table td {
+            border: 1px solid #444;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .ref-table th {
+            background-color: #333;
+            color: #ffaa00;
+            white-space: nowrap;
+        }
+        .ref-table td:nth-child(2) {
+            font-family: monospace;
+            color: #00ffff;
+            white-space: nowrap;
+        }
+        /* 結算介面樣式 */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center;
+        }
+        .stats-panel {
+            background: #1a1a1a; border: 2px solid #555; padding: 25px; border-radius: 8px;
+            width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,1);
+        }
+        .stats-panel h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; text-align: center; }
+        .stat-line { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 6px 0; font-size: 14px; }
+        .stat-line span.val { color: #00ffff; font-family: monospace; font-size: 15px; }
+        .stat-sub-line { display: flex; justify-content: space-between; padding: 4px 0 4px 20px; font-size: 13px; color: #aaa; }
+        .btn-restart {
+            width: 100%;
+            margin-top: 20px;
+            background: #4caf50;
+        }
+        .ref-title {
+            color: #fff;
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+        }
