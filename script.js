@@ -151,7 +151,7 @@ const canvas = document.getElementById("gameCanvas");
                 activeEffects.push({ target: entity, type: "water_hot", tick: 0, maxTick: 2, effectValue: 5, lastTime: Date.now(), isBuff: true });
                 
                 // 給敵人掛降速狀態 (2秒，獨立標籤)
-                activeEffects.push({ target: target, type: "water_slow", tick: 0, maxTick: 2, effectValue: 0, lastTime: Date.now(), isBuff: false });
+                activeEffects.push({ target: target, source: entity, type: "water_slow", tick: 0, maxTick: 2, effectValue: 0, lastTime: Date.now(), isBuff: false });
                 
                 createExplosion(entity.x, entity.y, "#00ffff", 25);
             } else {
@@ -228,45 +228,45 @@ const canvas = document.getElementById("gameCanvas");
             switch(type) {
                 case "albr": // 溴化鋁
                     // 沒擊中水，僅造成基礎撞擊
-                    damageEntity(target, 5);
+                    damageEntity(target, 5, owner);
                     // 如果場上有水（這裡簡化為如果目標身上有爆鳴水的水氣狀態，則觸發隱藏劇烈爆炸）
                     let hasWater = activeEffects.some(e => e.target === target && e.type === "water_hot");
                     if (hasWater) {
-                        damageEntity(target, 20);
+                        damageEntity(target, 20, owner);
                         addLog(`💥 連鎖反應！溴化鋁 接觸到 水，發生劇烈爆炸！ ${isTargetPlayer?'玩家':'電腦'} -20 生命！`);
                         createExplosion(target.x, target.y, "#ff4500", 30);
                     }
                     break;
 
                 case "alo": // 鋁+氧 -> 氧化鋁
-                    damageEntity(target, 1); // 攻擊：-1生命
+                    damageEntity(target, 1, owner); // 攻擊：-1生命
                     owner.shield = true;    // 防禦：我方自身獲得抵擋一次傷害的盾
                     addLog(`${owner === player ? '【玩家】' : '【電腦】'} 獲得【氧化鋁護盾】，並對敵方造成 1 點微量傷害。`);
                     break;
 
                 case "hbr": // 氫+溴 -> 氫溴酸
                     activeEffects.push({
-                        target: target, type: "hbr_dot", tick: 0, maxTick: 5, 
+                        target: target, source: owner, type: "hbr_dot", tick: 0, maxTick: 5, 
                         effectValue: -3, lastTime: Date.now(), isBuff: false
                     });
                     break;
 
                 case "h2o2": // 氫+氧 -> 雙氧水
                     activeEffects.push({
-                        target: target, type: "h2o2_dot", tick: 0, maxTick: 2, 
+                        target: target, source: owner, type: "h2o2_dot", tick: 0, maxTick: 2, 
                         effectValue: -2, lastTime: Date.now(), isBuff: false
                     });
                     break;
 
                 case "buff_debuff": // 氫+氧+鋁 -> 氫氧化鋁
                     activeEffects.push({
-                        target: target, type: "aloh_dot", tick: 0, maxTick: 3, 
+                        target: target, source: owner, type: "aloh_dot", tick: 0, maxTick: 3, 
                         effectValue: -2, lastTime: Date.now(), isBuff: false
                     });
                     break;
 
                 default: // 普通雜質
-                    damageEntity(target, 5);
+                    damageEntity(target, 1, owner);
                     createExplosion(target.x, target.y, "#ffff00", 8);
                     break;
             }
@@ -298,6 +298,9 @@ const canvas = document.getElementById("gameCanvas");
             let h = playerStats.hit.total;
             let overallRate = f > 0 ? ((h / f) * 100).toFixed(1) : 0;
             
+            // 💥 計算總承受傷害 (最大血量 100 - 當前血量 + 總治療量 + 護盾吸收量)
+            let damageTaken = (100 - Math.max(0, player.hp)) + playerStats.healing + playerStats.tanked;
+
             let html = `
                 <div class="stat-line"><span>總發射次數：</span><span class="val">${f} 發</span></div>
                 <div class="stat-line"><span>整體命中率：</span><span class="val">${h} / ${f} (${overallRate}%)</span></div>
@@ -319,6 +322,7 @@ const canvas = document.getElementById("gameCanvas");
                 <div class="stat-line"><span>造成總傷害：</span><span class="val">${playerStats.damageDealt.toFixed(1)}</span></div>
                 <div class="stat-line"><span>獲得總治療：</span><span class="val">${playerStats.healing.toFixed(1)}</span></div>
                 <div class="stat-line"><span>護盾吸收傷害：</span><span class="val">${playerStats.tanked.toFixed(1)}</span></div>
+                <div class="stat-line"><span>總承受傷害：</span><span class="val">${damageTaken.toFixed(1)}</span></div>
             `;
             
             document.getElementById('stats-container').innerHTML = html;
@@ -655,11 +659,14 @@ const canvas = document.getElementById("gameCanvas");
         };
 
         // 預設九宮格狀態 (對應實體鍵盤的 789, 456, 123)
-        let gridState = [
+        const defaultGrid = [
             null, null, null,
             'Al', null, null,
             'Br', 'H',  'O'
         ];
+        // 嘗試從瀏覽器 LocalStorage 讀取記憶，若沒有則使用預設值
+        let savedGrid = localStorage.getItem('alchemyGridState');
+        let gridState = savedGrid ? JSON.parse(savedGrid) : [...defaultGrid];
         let holdTimer = null;
         let keyMap = {}; // 用來記錄動態綁定的快捷鍵
 
@@ -672,12 +679,32 @@ const canvas = document.getElementById("gameCanvas");
                 let box = document.createElement('div');
                 box.className = 'element-box';
                 
+                // --- 週期表硬核排版邏輯 ---
+                if (i === 2) box.style.gridColumn = '18'; // He
+                else if (i === 5 || i === 13) box.style.gridColumn = '13'; // B, Al
+                else if (i === 72 || i === 104) box.style.gridColumn = '4'; // Hf, Rf
+                else if (i >= 57 && i <= 71) { // 鑭系 (Row 8, Col 4~18)
+                    box.style.gridRow = '8';
+                    box.style.gridColumn = (i - 57 + 4).toString();
+                }
+                else if (i >= 89 && i <= 103) { // 錒系 (Row 9, Col 4~18)
+                    box.style.gridRow = '9';
+                    box.style.gridColumn = (i - 89 + 4).toString();
+                }
+
                 let isActive = activeDict[i] !== undefined;
                 let sym = isActive ? activeDict[i].sym : i;
                 box.innerText = sym;
                 
-                if (isActive) box.classList.add('active');
+                if (isActive) {
+                    box.classList.add('active');
 
+                    // 💥 破壞統一紫色規則，單獨針對鋁 (原子序 13) 覆蓋顏色
+                    if (i === 13) {
+                        box.style.background = 'orange'; // 若要配合金屬圖例用 'orange'，若要配合戰鬥按鈕用 '#a9a9a9'
+                        box.style.color = 'black';       // 避免字看不清楚，改成黑字
+                    }
+                }
                 // 點擊顯示 Tooltip
                 box.addEventListener('mousedown', (e) => {
                     let desc = isActive ? activeDict[i].desc : (i > 4 ? "未知" : "敬請期待");
@@ -709,23 +736,59 @@ const canvas = document.getElementById("gameCanvas");
                     box.classList.remove('draggable-ready');
                 });
 
-                // 取消長按
-                box.addEventListener('mouseup', () => { clearTimeout(holdTimer); });
-                box.addEventListener('mouseleave', () => { clearTimeout(holdTimer); tooltip.style.opacity = 0; });
+                // 💥 關鍵修改：滑鼠放開時，不論有沒有拖曳，立刻中斷計時並強制解除拖曳狀態
+                box.addEventListener('mouseup', () => { 
+                    clearTimeout(holdTimer); 
+                    box.removeAttribute('draggable');
+                    box.classList.remove('draggable-ready');
+                });
+                
+                box.addEventListener('mouseleave', () => { 
+                    clearTimeout(holdTimer); 
+                    tooltip.style.opacity = 0; 
+                    box.removeAttribute('draggable');
+                    box.classList.remove('draggable-ready');
+                });
 
                 pt.appendChild(box);
             }
 
-            // 生成九宮格
+            // 生成九宮格與內部拖曳邏輯
             const grid = document.getElementById('nine-grid');
+            
+            // 獨立寫一個 UI 更新函數，方便每次拖曳後刷新畫面與存檔
+            function updateGridUI() {
+                for (let i = 0; i < 9; i++) {
+                    let cell = grid.children[i];
+                    cell.innerText = gridState[i] ? gridState[i] : '';
+                    
+                    // 如果格子裡有東西，就允許拖曳；沒東西就禁止拖曳
+                    if (gridState[i]) {
+                        cell.setAttribute('draggable', 'true');
+                        cell.style.cursor = 'grab';
+                    } else {
+                        cell.removeAttribute('draggable');
+                        cell.style.cursor = 'default';
+                    }
+                }
+                // 統一在這裡進行本機存檔
+                localStorage.setItem('alchemyGridState', JSON.stringify(gridState));
+            }
+
             for (let i = 0; i < 9; i++) {
                 let cell = document.createElement('div');
                 cell.className = 'grid-cell';
                 cell.dataset.index = i;
-                // 加上這行：如果有預設元素，直接顯示出來
-                if (gridState[i]) cell.innerText = gridState[i];
-                
-                // 下面的 dragover 等監聽器保持不變...
+                grid.appendChild(cell);
+
+                // 💥 新增：當從「九宮格內部」開始拖曳時
+                cell.addEventListener('dragstart', (e) => {
+                    if (gridState[i]) {
+                        e.dataTransfer.setData('text/plain', gridState[i]);
+                        e.dataTransfer.setData('source-index', i.toString()); // 紀錄它是從第幾格被抓起來的
+                    }
+                });
+
                 cell.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     cell.classList.add('drag-over');
@@ -736,22 +799,36 @@ const canvas = document.getElementById("gameCanvas");
                 cell.addEventListener('drop', (e) => {
                     e.preventDefault();
                     cell.classList.remove('drag-over');
-                    let sym = e.dataTransfer.getData('text/plain');
                     
-                    // 查重：如果該元素已經在九宮格內，清空原本的位置
-                    let existingIndex = gridState.indexOf(sym);
-                    if (existingIndex !== -1) {
-                        gridState[existingIndex] = null;
-                        grid.children[existingIndex].innerText = '';
+                    let sym = e.dataTransfer.getData('text/plain');
+                    let sourceIndex = e.dataTransfer.getData('source-index'); // 讀取來源暗號
+
+                    if (sourceIndex !== "") {
+                        // 【情況 A】從九宮格內部互相移動
+                        let fromIdx = parseInt(sourceIndex);
+                        if (fromIdx === i) return; // 原地放下，不作任何事
+                        
+                        // 💥 互換邏輯：把目標格子原本的東西塞回來源格子，把手上的東西放進目標格子
+                        gridState[fromIdx] = gridState[i]; 
+                        gridState[i] = sym;
+                    } else {
+                        // 【情況 B】從外面的週期表拉進來的新元素
+                        let existingIndex = gridState.indexOf(sym);
+                        if (existingIndex !== -1) {
+                            gridState[existingIndex] = null; // 查重：把舊位置的同名元素拔掉
+                        }
                     }
 
-                    // 寫入新位置
+                    // 寫入新位置 (不管目標格子原本有沒有東西，直接無情覆蓋)
                     gridState[i] = sym;
-                    cell.innerText = sym;
+                    
+                    // 重新渲染九宮格並自動存檔
+                    updateGridUI();
                 });
-
-                grid.appendChild(cell);
             }
+            
+            // 初始化執行一次，把預設或記憶體裡的陣型畫出來
+            updateGridUI();
         }
 
         // 開始遊戲按鈕觸發
