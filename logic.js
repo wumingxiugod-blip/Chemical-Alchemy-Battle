@@ -452,8 +452,10 @@ export function initStartScreen() {
             if (sourceIndex !== "") {
                 let fromIdx = parseInt(sourceIndex);
                 if (fromIdx === i) return; 
-                gameState.gridState[fromIdx] = gameState.gridState[i]; 
+                // 交換兩個格子的內容：先保存目標格子原本的値
+                let temp = gameState.gridState[i];
                 gameState.gridState[i] = sym;
+                gameState.gridState[fromIdx] = temp;
             } else {
                 let existingIndex = gameState.gridState.indexOf(sym);
                 if (existingIndex !== -1) {
